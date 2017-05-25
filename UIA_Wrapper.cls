@@ -1,3 +1,12 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "Class1"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 'INTRODUCTION#############################################################################################
 'This class implements functions to help with the Microsoft UI Automation
 'Author: Michael Humpherys
@@ -252,11 +261,14 @@ Private Sub class_initialize()
 End Sub
 
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
+'Function: getPropertyValue
+'Purpose: Get the property value from the UI Element based on the UIA ID Value
+'Parameters:    oUIElement - UI Element from which to retrieve property value
+'               id - Number from UIA Enumeration for property
+'Returns:   Success: Propery value. If array, values separated by ";"
+'           Failure: Empty string
 'Notes:
+'   If id is not in enumeration, will produce error. Need to add error handling.
 '===========================================================================================================
 Function getPropertyValue(oUIElement As IUIAutomationElement, id As Long)
     Dim vProp As Variant
@@ -279,11 +291,13 @@ Function getPropertyValue(oUIElement As IUIAutomationElement, id As Long)
 End Function
 
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
-'Notes:
+'Function: getPropertyFromName
+'Purpose: Use name of property rather than id number to get property value.
+'Parameters:    oUIElement - UI Element from which to retrieve property value
+'               sPropName - Name from property dictionary to get value for
+'Returns:   Success: Propery value. If array, values separated by ";"
+'           Failure: Empty string
+'Notes: Add check to see if sPropName is in the dictionary
 '===========================================================================================================
 Function getPropertyFromName(oUIElement As IUIAutomationElement, sPropName As String)
 
@@ -292,10 +306,14 @@ Function getPropertyFromName(oUIElement As IUIAutomationElement, sPropName As St
 End Function
 
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
+'Function: getAllPropertyValues
+'Purpose: Get a dump of all of the property values in a string formatted as
+'           Property Name1:= <Property Value1>
+'           Property Name2:= <Property Value2>
+'           ...
+'Parameters:    oUIElement - UI Element from which to retrieve property values
+'Returns:   Success: Formatted string of all properties values support by this class
+'           Failure:
 'Notes:
 '===========================================================================================================
 Function getAllPropertyValues(oUIElement As IUIAutomationElement)
@@ -313,11 +331,19 @@ End Function
 'to be searched for, but this still can be very powerful and helpful.
 'Note: TreeScope_Ancestors is not a valid scope parameter - https://msdn.microsoft.com/en-us/library/windows/desktop/ee696029(v=vs.85).aspx
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
+'Function: getFirstObjectOfElement
+'Purpose: Get the first UI Element related to the passed element by the TreeScope with the passed property
+'           description.
+'Parameters:    oUIElement - The root UI Element from which to look
+'               sPropDesc - A string with the property to look for in the UI element. Expected to be formatted
+'                   as "property name:=property value." If no ":=" included than assume this is the title of
+'                   UI element.
+'Returns:   Success - First UI Element with the property value in sPropDesc
+'           Failure - ""
 'Notes:
+'This is a very simple way of retrieving an element. It only allows for one property
+'to be searched for, but this still can be very powerful and helpful.
+'TreeScope_Ancestors is not a valid scope parameter - https://msdn.microsoft.com/en-us/library/windows/desktop/ee696029(v=vs.85).aspx
 '===========================================================================================================
 Function getFirstObjectOfElement(oUIElement As IUIAutomationElement, sPropDesc As String, vTreeScope As Variant)
     Dim aProps() As String
@@ -367,15 +393,20 @@ Function getFirstObjectOfElement(oUIElement As IUIAutomationElement, sPropDesc A
     getFirstObjectOfElement = oSearchUIElement
 End Function
 
-'This is a more flexible version of the getFirstObjectOfElement
+'===========================================================================================================
+'Function: getObjectByFindFirst
+'Purpose: Get the first UI Element related to the passed element by the TreeScope with the passed property
+'           description.
+'Parameters:    oUIElement - The root UI Element from which to look
+'               sPropDesc - A string with the properties to look for in the UI element. Expected to be formatted
+'                   as "property1:=value1;property2:=value2" If no ":=" included than assume this is the title of
+'                   UI element.
+'Returns:   Success - First UI Element with the property value in sPropDesc
+'           Failure - ""
+'Notes: This is a more flexible version of the getFirstObjectOfElement
 'This method uses the FindFirst method of UI Element, but instead of using one property to create
 'the condition it creates an AND condition to search on multiple properties.
-'===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
-'Notes:
+'If sPropDesc is "", then the function returns the first UI Element in the vTreeScope
 '===========================================================================================================
 Function getObjectByFindFirst(oUIElement As IUIAutomationElement, sPropDesc As String, vTreeScope As Variant)
     Dim aProps() As String
@@ -432,14 +463,18 @@ Function getObjectByFindFirst(oUIElement As IUIAutomationElement, sPropDesc As S
 End Function
 
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
+'Function: ActOnElement
+'Purpose: Perform some action on the passed UI Element
+'Parameters:    oElement2ActOn - UI Element to perform action on
+'               sAction - string name of the action to perform
+'               p1,p2 - Auxiliary variables to define action when needed (Optional)
 'Returns:
-'Notes:
-'===========================================================================================================
+'Notes: Supported Actions
+'...
 'Control Pattern Ids: https://msdn.microsoft.com/en-us/library/windows/desktop/ee671195(v=vs.85).aspx
-Function ActOnElemnt(oElement2ActOn As IUIAutomationElement, sAction As String, Optional p1 As Variant = "", Optional p2 As Variant = "")
+'===========================================================================================================
+
+Function ActOnElement(oElement2ActOn As IUIAutomationElement, sAction As String, Optional p1 As Variant = "", Optional p2 As Variant = "")
     Dim controlType As Variant
     Dim hwnd As Variant
     Dim vRetValue As Variant
@@ -555,11 +590,15 @@ Function ActOnElemnt(oElement2ActOn As IUIAutomationElement, sAction As String, 
 End Function
 
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
+'Function: getParentElement
+'Purpose: Get the ancestor fo the passed UI Element
+'Parameters:    oUIElement - UI Element from which to find parent UI Element
+'               iParent Level - 1 = Parent, 2 = grandparent, 3 = ggrandparent, etc.
+'Returns:   Sucess: UI Element parent of oUIElement
+'           Failure: Nothing
 'Notes:
+'If iParent is < 1, then returns immediate parent
+'add handling for this case to return Nothing!
 '===========================================================================================================
 Function getParentElement(oUIElement As IUIAutomationElement, iParentLevel)
     Dim i As Integer
@@ -573,13 +612,14 @@ Function getParentElement(oUIElement As IUIAutomationElement, iParentLevel)
     getParentElement = oUIParent
 
 End Function
+
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
+'Function: drawLine
+'Purpose: Draw a red line on desktop
+'Parameters:    x0, y0 - coordinates for start of line
+'               x1, y1 - coordinates for end of line
+'Returns: N/A
 'Notes:
-'===========================================================================================================
 'Const PS_SOLID = 0
 'Const PS_DASH = 1
 'Const PS_DOT = 2
@@ -588,6 +628,7 @@ End Function
 'Const PS_NULL = 5
 'Const PS_INSIDEFRAME = 6
 'http://www.jasinskionline.com/windowsapi/ref/c/createpen.html
+'===========================================================================================================
 Sub drawLine(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
     Dim hdc As Variant
     Dim pen As Variant
@@ -603,10 +644,11 @@ Sub drawLine(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
 End Sub
 
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
+'Function: drawRect
+'Purpose: Draw a red rectangle
+'Parameters:    x0, y0 - coordinates for top left of rectangle
+'               x1, y1 - coordinates for bottom right of rectangle
+'Returns: N/A
 'Notes:
 '===========================================================================================================
 Sub drawRect(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
@@ -617,10 +659,10 @@ Sub drawRect(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
 End Sub
 
 '===========================================================================================================
-'Function:
-'Purpose:
-'Parameters:
-'Returns:
+'Function: drawBoundingRect
+'Purpose: Draw a rectangle around the current UI Element
+'Parameters:    oUIElement - UI Element around which to draw rectangle
+'Returns: N/A
 'Notes:
 '===========================================================================================================
 Sub drawBoundingRect(oUIElement As IUIAutomationElement)
@@ -640,3 +682,5 @@ Sub drawBoundingRect(oUIElement As IUIAutomationElement)
     drawRect x0, y0, x1, y1
 
 End Sub
+
+
