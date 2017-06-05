@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+VERSION 0.4 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -11,11 +11,12 @@ Attribute VB_Exposed = False
 'This class implements functions to help with the Microsoft UI Automation
 'Author: Michael Humpherys
 'Last Updated: 5/23/2016
-'Version: 0.3a
+'Version: 0.4a
 'Requirements:
 '   UIAuotmationClient (UIAutomationCore.dll) (this is the core UI dll)
 '   Microsoft Scripting Runtime (scrrun.dll) (this is mainly for using dictionaries)
 '   AutoItX3 1.0 Type Library (AutoItX3.dll) (additional automation capabilities)
+'   Miscrosoft VBScript Regular Expression (vbscript.dll\3)
 'Notes:
 '   This class is based off of the UIAWrapper.au3 script created by junkew on AutoIT Forum
 '   https://www.autoitscript.com/forum/topic/153520-iuiautomation-ms-framework-automate-chrome-ff-ie/
@@ -27,6 +28,7 @@ Attribute VB_Exposed = False
 '   5) Figure out how to get handle to use with AutoIt
 '       -could get title with UIA, use title with AIt to get handle, etc.
 '   6) Decide whether some attributes/methods need to be private or not
+'   7) Add a parent search for properties like find object (FindAll and FindFirst don't work on Ancestors)
 '
 'Contents:
 '=======================================================================================================
@@ -281,7 +283,8 @@ Function getPropertyValue(oUIElement As IUIAutomationElement, id As Long)
         For i = 0 To UBound(vProp)
             sTemp = sTemp & Trim(vProp(i))
             If i <> UBound(vProp) Then
-                sTemp = sTemp & ";"
+                'sTemp = sTemp & ";"
+                sTemp = sTemp & "|"
             End If
         Next
     Else
@@ -327,6 +330,25 @@ Function getAllPropertyValues(oUIElement As IUIAutomationElement)
     getAllPropertyValues = sTemp
 End Function
 
+'===========================================================================================================
+'Function: getBasicPropertyValues
+'Purpose: Get a dump of all of the property values in a string formatted as
+'           Property Name1:= <Property Value1>;Property Name2:= <Property Value2>...
+'Parameters:    oUIElement - UI Element from which to retrieve property values
+'Returns:   Success: Formatted string of all properties values support by this class
+'           Failure:
+'Notes:
+'===========================================================================================================
+Function getBasicPropertyValues(oUIElement As IUIAutomationElement)
+    Dim sBaseProps As String
+    
+    sBaseProps = "title:=" & getPropertyFromName(oUIElement, "title") & ";" & _
+        "class:=" & getPropertyFromName(oUIElement, "class") & ";" & _
+        "NativeWindowHandle:=" & Hex(getPropertyFromName(oUIElement, "NativeWindowHandle")) & ";" & _
+        "BoundingRectangle:=" & getPropertyFromName(oUIElement, "BoundingRectangle") & ";"
+    getBasicPropertyValues = sBaseProps
+
+End Function
 'This is a very simple way of retrieving an element. It only allows for one property
 'to be searched for, but this still can be very powerful and helpful.
 'Note: TreeScope_Ancestors is not a valid scope parameter - https://msdn.microsoft.com/en-us/library/windows/desktop/ee696029(v=vs.85).aspx
@@ -460,6 +482,65 @@ Function getObjectByFindFirst(oUIElement As IUIAutomationElement, sPropDesc As S
     Wend
     
     getObjectByFindFirst = oSearchUIElement
+End Function
+
+Function getObjectByRegEx(oUIElement As IUIAutomationElement, sPropDesc As String, vTreeScope As Variant)
+    Dim aProps() As String
+    Dim vPropID As Long
+    Dim vTempValue As Variant
+    Dim vDictKey As Variant
+    Dim oUIElemArr As IUIAutomationElementArray
+    Dim iTry As Integer
+    Dim oTempUIElement As IUIAutomationElement
+    Dim oFoundUIElement As IUIAutomationElement
+    Dim iNumElems As Long
+    Dim i As Integer
+    Dim j As Long
+    Dim RE As New RegExp
+    Dim sActProp As String
+    Dim bFoundElem As Boolean
+    
+    Set oUIElemArr = oUIElement.FindAll(vTreeScope, UIA_oTRUECondition)
+    Set oFoundUIElement = Nothing
+    
+    iNumElems = oUIElemArr.Length
+    
+    aProps = Split(sPropDesc, ";")
+    For j = 1 To iNumElems
+        Set oTempUIElement = oUIElemArr.GetElement(j)
+        For i = 0 To UBound(aProps)
+            Dim aProp() As String
+            aProp = Split(aProps(i), ":=")
+            'If property not identified then assume name/title
+            If UBound(aProp) = 0 Then
+                vPropID = UIA_NamePropertyId
+                vTempValue = aProp(0)
+            Else
+                vPropID = UIA_dPropertiesSupportedArray(aProp(0))
+                vTempValue = aProp(1)
+            End If
+            
+            RE.Pattern = vTempValue
+            RE.IgnoreCase = True
+            
+            sActProp = getPropertyValue(oTempUIElement, vPropID)
+            If Not RE.test(sActProp) Then
+                'Set oTempUIElement = Nothing
+                bFoundElem = False
+                GoTo NextElem:
+            ElseIf i = UBound(aProp) Then
+                bFoundElem = True
+            End If
+        Next
+NextElem:
+        If bFoundElem Then
+            Set oFoundUIElement = oTempUIElement
+            Exit For
+        End If
+    Next
+    getObjectByRegEx = oFoundUIElement
+    
+    
 End Function
 
 '===========================================================================================================
@@ -674,7 +755,8 @@ Sub drawBoundingRect(oUIElement As IUIAutomationElement)
     Dim y1 As Long
     
     sProp = getPropertyFromName(oUIElement, "BoundingRectangle")
-    aBoundRect() = Split(sProp, ";")
+    'aBoundRect() = Split(sProp, ";")
+    aBoundRect() = Split(sProp, "|")
     x0 = CLng(aBoundRect(0)) - 1
     y0 = CLng(aBoundRect(1)) - 1
     x1 = CLng(aBoundRect(2)) + CLng(aBoundRect(0)) + 1
