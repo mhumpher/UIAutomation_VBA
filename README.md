@@ -12,3 +12,5 @@ To use in Excel:
 3) Go to Visual Basic Editor
 4) Select File -> Import File...
 5) Select the UIA_Wrapper.cls
+
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" 
