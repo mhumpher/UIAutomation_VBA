@@ -1,6 +1,12 @@
-This VBA Class implements helper functions for Microsoft UI Automation
+A VBA Class for Excel that implements a wrapper for Microsoft's UI Automation 
+(https://msdn.microsoft.com/en-us/library/ms747327(v=vs.110).aspx)
 
-https://msdn.microsoft.com/en-us/library/ms747327(v=vs.110).aspx
+Programmatically identify and manipulate UI elements on the UI tree based on easily identifiable properties. To discover properties of UI element use Microsoft's Inspect.exe (https://msdn.microsoft.com/en-us/library/windows/desktop/dd318521(v=vs.85).aspx) or other utility (e.g. https://github.com/blackrosezy/gui-inspect-tool)
+
+Supported Actions:
+click, sendkeys, invoke, close, move, resize, minimize, maximize, normal, page down/up, scroll down/up, setvalue, getvalue
+
+
 
 This class is based off of the UIAWrapper.au3 script created by junkew on AutoIT Forum
 
