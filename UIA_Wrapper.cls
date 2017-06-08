@@ -1,4 +1,4 @@
-VERSION 0.4 CLASS
+VERSION 0.4a CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -83,7 +83,7 @@ Lib "gdi32.dll" _
 
 Private Declare Function GetDC _
 Lib "user32" _
-(ByVal hwnd As Long) As Long
+(ByVal hWnd As Long) As Long
 
 Private Declare Function CreatePen _
 Lib "gdi32" _
@@ -506,7 +506,7 @@ Function getObjectByRegEx(oUIElement As IUIAutomationElement, sPropDesc As Strin
     iNumElems = oUIElemArr.Length
     
     aProps = Split(sPropDesc, ";")
-    For j = 1 To iNumElems
+    For j = 0 To iNumElems - 1 'Array is zero-indexed
         Set oTempUIElement = oUIElemArr.GetElement(j)
         For i = 0 To UBound(aProps)
             Dim aProp() As String
@@ -557,7 +557,7 @@ End Function
 
 Function ActOnElement(oElement2ActOn As IUIAutomationElement, sAction As String, Optional p1 As Variant = "", Optional p2 As Variant = "")
     Dim controlType As Variant
-    Dim hwnd As Variant
+    Dim hWnd As Variant
     Dim vRetValue As Variant
     
     Dim tInvokePat As IUIAutomationInvokePattern
@@ -575,7 +575,7 @@ Function ActOnElement(oElement2ActOn As IUIAutomationElement, sAction As String,
             Dim aTemp As Variant
             Dim x As Integer
             Dim y As Integer
-            aTemp = Split(getPropertyValue(oElement2ActOn, UIA_BoundingRectanglePropertyId), ";")
+            aTemp = Split(getPropertyValue(oElement2ActOn, UIA_BoundingRectanglePropertyId), "|")
             x = CInt(aTemp(0) + (aTemp(2) / 2))
             y = CInt(aTemp(1) + (aTemp(3) / 2))
             
@@ -667,7 +667,7 @@ Function ActOnElement(oElement2ActOn As IUIAutomationElement, sAction As String,
         
     End Select
     
-    ActOnElemnt = vRetValue
+    ActOnElement = vRetValue
 End Function
 
 '===========================================================================================================
