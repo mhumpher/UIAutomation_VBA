@@ -10,8 +10,8 @@ Attribute VB_Exposed = False
 'INTRODUCTION#############################################################################################
 'This class implements functions to help with the Microsoft UI Automation
 'Author: Michael Humpherys
-'Last Updated: 5/23/2016
-'Version: 0.4a
+'Last Updated: 6/12/2017
+'Version: 0.6a
 'Requirements:
 '   UIAuotmationClient (UIAutomationCore.dll) (this is the core UI dll)
 '   Microsoft Scripting Runtime (scrrun.dll) (this is mainly for using dictionaries)
@@ -28,7 +28,7 @@ Attribute VB_Exposed = False
 '   5) Figure out how to get handle to use with AutoIt
 '       -could get title with UIA, use title with AIt to get handle, etc.
 '   6) Decide whether some attributes/methods need to be private or not
-'   7) Add a parent search for properties like find object (FindAll and FindFirst don't work on Ancestors)
+'   xxx7) Add a parent search for properties like find object (FindAll and FindFirst don't work on Ancestors)
 '
 'Contents:
 '=======================================================================================================
@@ -508,6 +508,7 @@ Function getObjectByRegEx(oUIElement As IUIAutomationElement, sPropDesc As Strin
     aProps = Split(sPropDesc, ";")
     For j = 0 To iNumElems - 1 'Array is zero-indexed
         Set oTempUIElement = oUIElemArr.GetElement(j)
+        Debug.Print getBasicPropertyValues(oTempUIElement)
         For i = 0 To UBound(aProps)
             Dim aProp() As String
             aProp = Split(aProps(i), ":=")
@@ -528,7 +529,7 @@ Function getObjectByRegEx(oUIElement As IUIAutomationElement, sPropDesc As Strin
                 'Set oTempUIElement = Nothing
                 bFoundElem = False
                 GoTo NextElem:
-            ElseIf i = UBound(aProp) Then
+            ElseIf i = UBound(aProps) Then
                 bFoundElem = True
             End If
         Next
@@ -695,6 +696,30 @@ Function getParentElement(oUIElement As IUIAutomationElement, iParentLevel)
 End Function
 
 '===========================================================================================================
+'Function: getParentElement
+'Purpose: Get the ancestor fo the passed UI Element
+'Parameters:    oUIElement - UI Element from which to find parent UI Element
+'               sProps - String of parent properties to search for
+'Returns:   Sucess: UI Element parent of oUIElement
+'           Failure: Nothing
+'Notes:
+'
+'===========================================================================================================
+Function getParentByRegEx(oUIElement As IUIAutomationElement, sProps As String)
+    Dim i As Integer
+    Dim oUIParent As IUIAutomationElement
+    Dim oFoundElement As IUIAutomationElement
+    
+    Set oUIParent = UIA_oTW.getParentElement(oUIElement)
+    While oFoundElement Is Nothing And getPropertyFromName(oUIParent, "title") <> "Desktop"
+        Set oFoundElement = getObjectByRegEx(oUIParent, sProps, TreeScope_Element)
+        Set oUIParent = UIA_oTW.getParentElement(oUIParent)
+    Wend
+    getParentByRegEx = oFoundElement
+
+End Function
+
+'===========================================================================================================
 'Function: drawLine
 'Purpose: Draw a red line on desktop
 'Parameters:    x0, y0 - coordinates for start of line
@@ -764,5 +789,3 @@ Sub drawBoundingRect(oUIElement As IUIAutomationElement)
     drawRect x0, y0, x1, y1
 
 End Sub
-
-
