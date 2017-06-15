@@ -1,4 +1,4 @@
-VERSION 0.7a CLASS
+VERSION 0.8a CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -10,8 +10,8 @@ Attribute VB_Exposed = False
 'INTRODUCTION#############################################################################################
 'This class implements functions to help with the Microsoft UI Automation
 'Author: Michael Humpherys
-'Last Updated: 6/14/2017
-'Version: 0.7a
+'Last Updated: 6/15/2017
+'Version: 0.8a
 'Requirements:
 '   UIAuotmationClient (UIAutomationCore.dll) (this is the core UI dll)
 '   Microsoft Scripting Runtime (scrrun.dll) (this is mainly for using dictionaries)
@@ -60,38 +60,6 @@ Attribute VB_Exposed = False
 '########################################################################################################
 
 Option Explicit
-
-'DECLARE FUNCTIONS#######################################################################################
-'========================================================================================================
-'Sleep function is useful as part of automation
-#If VBA7 Then
-    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr) 'For 64 Bit Systems
-#Else
-    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long) 'For 32 Bit Systems
-#End If
-'=========================================================================================================
-'Additional Functions to help draw lines on screen to identify location of UI Elements
-Private Declare Function LineTo _
-Lib "gdi32.dll" _
-(ByVal handle As Long, ByVal x As Long, ByVal y As Long) As Integer
-
-Private Declare Function MoveToEx _
-Lib "gdi32.dll" _
-(ByVal handle As Long, ByVal x As Integer, ByVal y As Integer, ByVal lppoint As Long) As Integer
-
-Private Declare Function GetDC _
-Lib "user32" _
-(ByVal hWnd As Long) As Long
-
-Private Declare Function CreatePen _
-Lib "gdi32" _
-(ByVal nPenStyle As Long, ByVal nWidth As Long, ByVal crColor As Long) As Long
-
-Private Declare Function SelectObject _
-Lib "gdi32" _
-(ByVal hdc As Long, ByVal hObject As Long) As Long
-'==========================================================================================================
-'###########################################################################################################
 
 'ATTRIBUTES###########################################################################################
 'Attributes will begin with UIA_
@@ -554,7 +522,7 @@ End Function
 
 Function ActOnElement(oElement2ActOn As IUIAutomationElement, sAction As String, Optional p1 As Variant = "", Optional p2 As Variant = "")
     Dim controlType As Variant
-    Dim hWnd As Variant
+    Dim hwnd As Variant
     Dim vRetValue As Variant
     
     Dim tInvokePat As IUIAutomationInvokePattern
@@ -716,51 +684,6 @@ Function getParentByRegEx(oUIElement As IUIAutomationElement, sProps As String)
 End Function
 
 '===========================================================================================================
-'Function: drawLine
-'Purpose: Draw a red line on desktop
-'Parameters:    x0, y0 - coordinates for start of line
-'               x1, y1 - coordinates for end of line
-'Returns: N/A
-'Notes:
-'Const PS_SOLID = 0
-'Const PS_DASH = 1
-'Const PS_DOT = 2
-'Const PS_DASHDOT = 3
-'Const PS_DASHDOTDOT = 4
-'Const PS_NULL = 5
-'Const PS_INSIDEFRAME = 6
-'http://www.jasinskionline.com/windowsapi/ref/c/createpen.html
-'===========================================================================================================
-Sub drawLine(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
-    Dim hdc As Variant
-    Dim pen As Variant
-    Dim res As Variant
-
-    hdc = GetDC(0)
-    'pen = CreatePen(PS_SOLID, 4, RGB(255, 0, 0))
-    pen = CreatePen(0, 4, RGB(255, 0, 0))
-    res = SelectObject(hdc, pen)
-    res = MoveToEx(hdc, x0, y0, 0)
-    res = LineTo(hdc, x1, y1)
-
-End Sub
-
-'===========================================================================================================
-'Function: drawRect
-'Purpose: Draw a red rectangle
-'Parameters:    x0, y0 - coordinates for top left of rectangle
-'               x1, y1 - coordinates for bottom right of rectangle
-'Returns: N/A
-'Notes:
-'===========================================================================================================
-Sub drawRect(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
-    drawLine x0, y0, x1, y0 'top
-    drawLine x0, y0, x0, y1 'left
-    drawLine x1, y0, x1, y1 'right
-    drawLine x0, y1, x1, y1 'bottom
-End Sub
-
-'===========================================================================================================
 'Function: drawBoundingRect
 'Purpose: Draw a rectangle around the current UI Element
 'Parameters:    oUIElement - UI Element around which to draw rectangle
@@ -787,8 +710,8 @@ Sub drawBoundingRect(oUIElement As IUIAutomationElement)
 End Sub
 
 '===========================================================================================================
-'Function: drawBoundingRect
-'Purpose: Draw a rectangle around the current UI Element
+'Function: getBoundingRect
+'Purpose: Return array of BoundingRectangle dimensions as longs
 'Parameters:    oUIElement - UI Element around which to draw rectangle
 'Returns:       Success - 1D 4 Long Element Array with bounding rectangle values
 'Notes:
@@ -880,3 +803,4 @@ Function getNiceHandle(oUIElement As IUIAutomationElement, Optional b64BitHandle
         getNiceHandle = "0x" & sHandleStart & sElemUIHandle
     End If
 End Function
+
