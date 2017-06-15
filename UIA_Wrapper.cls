@@ -769,7 +769,7 @@ Function ObjWaitExists(oRoot As IUIAutomationElement, sProps As String)
     Dim oElem As IUIAutomationElement
     Set oElem = getObjectByRegEx(oRoot, sProps, TreeScope_Subtree)
     While Not oElem Is Nothing
-        Set oElem = getObjectByRegEx(oRoot, sProps, TreeScope_Subtree)
+        Set oElem = getObjectByRegEx(oElem, sProps, TreeScope_Element)
         UIA_oAutoIT.Sleep 100
     Wend
 End Function
