@@ -6,22 +6,25 @@ Programmatically identify and manipulate UI elements on the UI tree based on eas
 Supported Actions:
 click, sendkeys, invoke, close, move, resize, minimize, maximize, normal, page down/up, scroll down/up, setvalue, getvalue
 
-
+Supported Searches:
+- Search with find first with multiple properties
+- Search with Regular Expressions
+- Get parent by defined levels
+- Search parents by Regular Expressions
 
 This class is based off of the UIAWrapper.au3 script created by junkew on AutoIT Forum
-
 https://www.autoitscript.com/forum/topic/153520-iuiautomation-ms-framework-automate-chrome-ff-ie/
 
 To use in Excel:
-1) Download UIA_Wrapper.cls file
+1) Download UIA_Wrapper.cls and HelperFunctions.bas files
 2) Open Excel
 3) Go to Visual Basic Editor
 4) Select File -> Import File...
-5) Select the UIA_Wrapper.cls
+5) Select the UIA_Wrapper.cls and HelperFunctions.bas
 
 To Do:
 1) Create version without AutoItX - should work on base Excel install
-2) Create helper function module for auxilary functions (drawLine, Sleep, MouseClick, etc.)
+2) Create helper function module for auxilary functions (drawLine, Sleep, MouseClick, etc.) - In Construction
 3) Create Examples and demos
   - Notepad, Calculator, search Desktop,...
 
