@@ -1,4 +1,4 @@
-VERSION 0.6a CLASS
+VERSION 0.8a CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -10,8 +10,8 @@ Attribute VB_Exposed = False
 'INTRODUCTION#############################################################################################
 'This class implements functions to help with the Microsoft UI Automation
 'Author: Michael Humpherys
-'Last Updated: 6/12/2017
-'Version: 0.6a
+'Last Updated: 6/15/2017
+'Version: 0.8a
 'Requirements:
 '   UIAuotmationClient (UIAutomationCore.dll) (this is the core UI dll)
 '   Microsoft Scripting Runtime (scrrun.dll) (this is mainly for using dictionaries)
@@ -21,14 +21,12 @@ Attribute VB_Exposed = False
 '   This class is based off of the UIAWrapper.au3 script created by junkew on AutoIT Forum
 '   https://www.autoitscript.com/forum/topic/153520-iuiautomation-ms-framework-automate-chrome-ff-ie/
 'TO DO:
-'   1) Add documentation
-'   2) Add error checking/handling to various functions
-'   3) clear up references to dictionary in getFirstObjectOfElement and getObjectByFindFirst
-'   4) Add normalizeExpression function for input string to get Object functions
-'   5) Figure out how to get handle to use with AutoIt
+'   - Add documentation
+'   - Add error checking/handling to various functions
+'   - clear up references to dictionary in getFirstObjectOfElement and getObjectByFindFirst
+'   - Add normalizeExpression function for input string to get Object functions
+'   - Figure out how to get handle to use with AutoIt
 '       -could get title with UIA, use title with AIt to get handle, etc.
-'   6) Decide whether some attributes/methods need to be private or not
-'   xxx7) Add a parent search for properties like find object (FindAll and FindFirst don't work on Ancestors)
 '
 'Contents:
 '=======================================================================================================
@@ -63,57 +61,23 @@ Attribute VB_Exposed = False
 
 Option Explicit
 
-'DECLARE FUNCTIONS#######################################################################################
-'========================================================================================================
-'Sleep function is useful as part of automation
-#If VBA7 Then
-    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr) 'For 64 Bit Systems
-#Else
-    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long) 'For 32 Bit Systems
-#End If
-'=========================================================================================================
-'Additional Functions to help draw lines on screen to identify location of UI Elements
-Private Declare Function LineTo _
-Lib "gdi32.dll" _
-(ByVal handle As Long, ByVal x As Long, ByVal y As Long) As Integer
-
-Private Declare Function MoveToEx _
-Lib "gdi32.dll" _
-(ByVal handle As Long, ByVal x As Integer, ByVal y As Integer, ByVal lppoint As Long) As Integer
-
-Private Declare Function GetDC _
-Lib "user32" _
-(ByVal hWnd As Long) As Long
-
-Private Declare Function CreatePen _
-Lib "gdi32" _
-(ByVal nPenStyle As Long, ByVal nWidth As Long, ByVal crColor As Long) As Long
-
-Private Declare Function SelectObject _
-Lib "gdi32" _
-(ByVal hdc As Long, ByVal hObject As Long) As Long
-'==========================================================================================================
-'###########################################################################################################
-
 'ATTRIBUTES###########################################################################################
 'Attributes will begin with UIA_
 'Implements the UIAutomation Framework
 Public UIA_oUIAutomation As New CUIAutomation
 Public UIA_oDesktop As IUIAutomationElement
-'Public UIA_oUIElement As IUIAutomationElement 'Since this is specific element shouldn't be part of class
 Public UIA_oTW As IUIAutomationTreeWalker
-Public UIA_oTRUECondition As IUIAutomationCondition 'may need to set to object if not correct
+Private UIA_oTRUECondition As IUIAutomationCondition 'may need to set to object if not correct
 
 'Include AutoIT Object to assit with automation
-'Private because don't want user messing with it
 Private UIA_oAutoIT As New AutoItX3
 
 'Tables holding lookup values
-Public UIA_dPropertiesSupportedArray As New Scripting.Dictionary
-Public UIA_dControlArray As New Scripting.Dictionary
+Private UIA_dPropertiesSupportedArray As New Scripting.Dictionary
+Private UIA_dControlArray As New Scripting.Dictionary
 
 'Constants
-Public UIA_iDefaultWaitTime As Integer
+Private Const UIA_iDEFAULTWAITTIME As Integer = 200
 Private Const iUIA_MAXDEPTH As Integer = 25
 Private Const iUIA_tryMAX As Integer = 3
 '###########################################################################################################
@@ -127,7 +91,7 @@ Private Const iUIA_tryMAX As Integer = 3
 'Notes: VBA interal subroutine
 '===========================================================================================================
 Private Sub class_initialize()
-    UIA_iDefaultWaitTime = 200
+    'UIA_iDefaultWaitTime = 200
     Set UIA_oDesktop = UIA_oUIAutomation.GetRootElement 'Gets the desktop element
     Set UIA_oTW = UIA_oUIAutomation.RawViewWalker
     'may need to check that this worked
@@ -525,7 +489,7 @@ Function getObjectByRegEx(oUIElement As IUIAutomationElement, sPropDesc As Strin
             RE.IgnoreCase = True
             
             sActProp = getPropertyValue(oTempUIElement, vPropID)
-            If Not RE.test(sActProp) Then
+            If Not RE.Test(sActProp) Then
                 'Set oTempUIElement = Nothing
                 bFoundElem = False
                 GoTo NextElem:
@@ -558,7 +522,7 @@ End Function
 
 Function ActOnElement(oElement2ActOn As IUIAutomationElement, sAction As String, Optional p1 As Variant = "", Optional p2 As Variant = "")
     Dim controlType As Variant
-    Dim hWnd As Variant
+    Dim hwnd As Variant
     Dim vRetValue As Variant
     
     Dim tInvokePat As IUIAutomationInvokePattern
@@ -592,7 +556,7 @@ Function ActOnElement(oElement2ActOn As IUIAutomationElement, sAction As String,
                 'UIA_oAutoIT.WinSetTitle hwnd, "", p1
             Else
                 oElement2ActOn.SetFocus
-                Sleep (UIA_iDefaultWaitTime)
+                Sleep (UIA_iDEFAULTWAITTIME)
                 
                 'Don't deep with the UIA_LegacyIAccessiblePatternId
                 Set tValuePat = oElement2ActOn.GetCurrentPattern(UIA_ValuePatternId)
@@ -720,51 +684,6 @@ Function getParentByRegEx(oUIElement As IUIAutomationElement, sProps As String)
 End Function
 
 '===========================================================================================================
-'Function: drawLine
-'Purpose: Draw a red line on desktop
-'Parameters:    x0, y0 - coordinates for start of line
-'               x1, y1 - coordinates for end of line
-'Returns: N/A
-'Notes:
-'Const PS_SOLID = 0
-'Const PS_DASH = 1
-'Const PS_DOT = 2
-'Const PS_DASHDOT = 3
-'Const PS_DASHDOTDOT = 4
-'Const PS_NULL = 5
-'Const PS_INSIDEFRAME = 6
-'http://www.jasinskionline.com/windowsapi/ref/c/createpen.html
-'===========================================================================================================
-Sub drawLine(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
-    Dim hdc As Variant
-    Dim pen As Variant
-    Dim res As Variant
-
-    hdc = GetDC(0)
-    'pen = CreatePen(PS_SOLID, 4, RGB(255, 0, 0))
-    pen = CreatePen(0, 4, RGB(255, 0, 0))
-    res = SelectObject(hdc, pen)
-    res = MoveToEx(hdc, x0, y0, 0)
-    res = LineTo(hdc, x1, y1)
-
-End Sub
-
-'===========================================================================================================
-'Function: drawRect
-'Purpose: Draw a red rectangle
-'Parameters:    x0, y0 - coordinates for top left of rectangle
-'               x1, y1 - coordinates for bottom right of rectangle
-'Returns: N/A
-'Notes:
-'===========================================================================================================
-Sub drawRect(x0 As Long, y0 As Long, x1 As Long, y1 As Long)
-    drawLine x0, y0, x1, y0 'top
-    drawLine x0, y0, x0, y1 'left
-    drawLine x1, y0, x1, y1 'right
-    drawLine x0, y1, x1, y1 'bottom
-End Sub
-
-'===========================================================================================================
 'Function: drawBoundingRect
 'Purpose: Draw a rectangle around the current UI Element
 'Parameters:    oUIElement - UI Element around which to draw rectangle
@@ -789,3 +708,99 @@ Sub drawBoundingRect(oUIElement As IUIAutomationElement)
     drawRect x0, y0, x1, y1
 
 End Sub
+
+'===========================================================================================================
+'Function: getBoundingRect
+'Purpose: Return array of BoundingRectangle dimensions as longs
+'Parameters:    oUIElement - UI Element around which to draw rectangle
+'Returns:       Success - 1D 4 Long Element Array with bounding rectangle values
+'Notes:
+'===========================================================================================================
+Function getBoundingRect(oUIElement As IUIAutomationElement)
+    Dim sProp As String
+    Dim asBoundRect() As String
+    Dim alBoundRect(4) As Long
+    
+    sProp = getPropertyFromName(oUIElement, "BoundingRectangle")
+    asBoundRect() = Split(sProp, "|")
+    alBoundRect(0) = CLng(asBoundRect(0))
+    alBoundRect(1) = CLng(asBoundRect(1))
+    alBoundRect(2) = CLng(asBoundRect(2))
+    alBoundRect(3) = CLng(asBoundRect(3))
+    getBoundingRect = alBoundRect
+
+End Function
+
+' #FUNCTION# =================================================================================================================
+' Name...........: ObjWait
+' Description ...: Waits for a UIA object to exist.
+' Assumptions ...: 1) No max wait time - TO DO
+' Syntax.........: ObjWait(oRoot, sProps)
+' Parameters ....: oRoot = UIA Root from which to look for the object (need not be ALFA object)
+'                  sProps = UIA properties of object looking for
+' Return values .: Success      -
+'                  Failure      -
+' Author ........: Michael Humpherys
+' Modified.......:
+' Remarks .......:
+' ============================================================================================================================
+Function ObjWait(oRoot As IUIAutomationElement, sProps As String)
+    Dim oElem As IUIAutomationElement
+    While oElem Is Nothing
+        Set oElem = getObjectByRegEx(oRoot, sProps, TreeScope_Subtree)
+        UIA_oAutoIT.Sleep 100
+    Wend
+End Function
+
+' #FUNCTION# ====================================================================================================================
+' Name...........: ObjWaitExists
+' Description ...: Waits until the UIA object ceases to exist
+' Assumptions ...: 1) No max wait time - TO DO
+' Syntax.........: ObjWaitExists(oRoot, sProps)
+' Parameters ....: oRoot = UIA Root from which to look for the object (need not be ALFA object)
+'                  sProps = UIA properties of object looking for
+' Return values .: Success      - TO DO
+'                  Failure      - TO DO
+' Author ........: Michael Humpherys
+' Modified.......:
+' Remarks .......:
+' ===============================================================================================================================
+Function ObjWaitExists(oRoot As IUIAutomationElement, sProps As String)
+    Dim oElem As IUIAutomationElement
+    Set oElem = getObjectByRegEx(oRoot, sProps, TreeScope_Subtree)
+    While Not oElem Is Nothing
+        Set oElem = getObjectByRegEx(oElem, sProps, TreeScope_Element)
+        UIA_oAutoIT.Sleep 100
+    Wend
+End Function
+
+'===========================================================================================================
+'Function: getNiceHandle
+'Purpose: Returns a string with the handle number formatted as 0xYYYYYYYY
+'Parameters:    oUIElement - UI Element around which to draw rectangle
+'               b64BitHandle - Boolean to return handle as 32bit or 64 bit
+'Returns:       Success - Formatted string with handle number
+'               Failure - empty string
+'Notes:
+'===========================================================================================================
+Function getNiceHandle(oUIElement As IUIAutomationElement, Optional b64BitHandle As Boolean = False)
+    Dim sElemUIHandle As String
+    Dim sHandleStart As String
+    Dim hElemUIHandle As String
+    
+    sElemUIHandle = getPropertyFromName(oUIElement, "handle")
+    If sElemUIHandle = "0" Then
+        getNiceHandle = ""
+    Else
+    
+        sElemUIHandle = Hex(sElemUIHandle)
+        If b64BitHandle Then
+            sHandleStart = String(16 - Len(sElemUIHandle), "0")
+        Else
+            sHandleStart = String(8 - Len(sElemUIHandle), "0")
+        End If
+    
+        getNiceHandle = "0x" & sHandleStart & sElemUIHandle
+    End If
+End Function
+
