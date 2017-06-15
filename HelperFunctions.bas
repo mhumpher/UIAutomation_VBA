@@ -8,6 +8,10 @@
 'TO DO: - Mouse Move
 '       - Mouse Click
 '       - Send Keys
+'Resources:
+'       http://www.jkp-ads.com/articles/apideclarations.asp
+'       http://www.vbforums.com/showthread.php?734167-Mouse-Move-and-Click-with-Windows-API-Function-SendInput
+'       https://support.microsoft.com/nl-nl/help/2030490/office-2010-help-files-win32api-ptrsafe-with-64-bit-support
 '=======================================================================================================
 'TYPE DECLARATIONS#######################################################################################
 Type POINTAPI
