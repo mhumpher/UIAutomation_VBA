@@ -1,0 +1,275 @@
+'https://msdn.microsoft.com/en-us/library/office/ff192913.aspx
+'https://github.com/krlmlr/Excel2LaTeX/blob/master/src/Win32Clipboard.bas
+
+Option Explicit
+
+'Private Declare Function OpenClipboard Lib "user32.dll" (ByVal hWnd As Long) As Long
+'Private Declare Function EmptyClipboard Lib "user32.dll" () As Long
+'Private Declare Function CloseClipboard Lib "user32.dll" () As Long
+'Private Declare Function IsClipboardFormatAvailable Lib "user32.dll" (ByVal wFormat As Long) As Long
+'Private Declare Function GetClipboardData Lib "user32.dll" (ByVal wFormat As Long) As Long
+'Private Declare Function SetClipboardData Lib "user32.dll" (ByVal wFormat As Long, ByVal hMem As Long) As Long
+'Private Declare Function GlobalAlloc Lib "kernel32.dll" (ByVal wFlags As Long, ByVal dwBytes As Long) As Long
+'Private Declare Function GlobalLock Lib "kernel32.dll" (ByVal hMem As Long) As Long
+'Private Declare Function GlobalUnlock Lib "kernel32.dll" (ByVal hMem As Long) As Long
+'Private Declare Function GlobalSize Lib "kernel32" (ByVal hMem As Long) As Long
+'Private Declare Function lstrcpy Lib "kernel32.dll" Alias "lstrcpyW" (ByVal lpString1 As Long, ByVal lpString2 As Long) As Long
+
+Public Sub SetClipboard(sUniText As String)
+    Dim iStrPtr As Long
+    Dim iLen As Long
+    Dim iLock As Long
+    Const GMEM_MOVEABLE As Long = &H2
+    Const GMEM_ZEROINIT As Long = &H40
+    Const CF_UNICODETEXT As Long = &HD
+    OpenClipboard 0&
+    EmptyClipboard
+    iLen = LenB(sUniText) + 2&
+    iStrPtr = GlobalAlloc(GMEM_MOVEABLE Or GMEM_ZEROINIT, iLen)
+    iLock = GlobalLock(iStrPtr)
+    lstrcpy iLock, StrPtr(sUniText)
+    GlobalUnlock iStrPtr
+    SetClipboardData CF_UNICODETEXT, iStrPtr
+    CloseClipboard
+End Sub
+Public Function GetClipboard() As String
+    Dim iStrPtr As Long
+    Dim iLen As Long
+    Dim iLock As Long
+    Dim sUniText As String
+    Const CF_UNICODETEXT As Long = 13&
+    OpenClipboard 0&
+    If IsClipboardFormatAvailable(CF_UNICODETEXT) Then
+        iStrPtr = GetClipboardData(CF_UNICODETEXT)
+        If iStrPtr Then
+            iLock = GlobalLock(iStrPtr)
+            iLen = GlobalSize(iStrPtr)
+            sUniText = String$(iLen \ 2& - 1&, vbNullChar)
+            lstrcpy StrPtr(sUniText), iLock
+            GlobalUnlock iStrPtr
+        End If
+        GetClipboard = sUniText
+    End If
+    CloseClipboard
+End Function
+Public Function GetTextFromClipboard() As String
+    Dim iStrPtr As LongPtr
+    
+    Dim iLen As Long
+    Dim iLock As Long
+    Dim sUniText As String
+    Const CF_UNICODETEXT As Long = 13&
+    OpenClipboard 0&
+    If IsClipboardFormatAvailable(CF_UNICODETEXT) Then
+        iStrPtr = GetClipboardData(CF_UNICODETEXT)
+        If iStrPtr Then
+            iLock = GlobalLock(iStrPtr)
+            iLen = GlobalSize(iStrPtr)
+            sUniText = String$(iLen \ 2& - 1&, vbNullChar)
+            lstrcpy StrPtr(sUniText), iLock
+            GlobalUnlock iStrPtr
+        End If
+        GetTextFromClipboard = sUniText
+    End If
+    CloseClipboard
+End Function
+Function ClipBoard_SetData(MyString As String)
+'PURPOSE: API function to copy text to clipboard
+'SOURCE: www.msdn.microsoft.com/en-us/library/office/ff192913.aspx
+
+Dim hGlobalMemory As Long, lpGlobalMemory As Long
+Dim hClipMemory As Long, x As Long
+
+'Allocate moveable global memory
+  hGlobalMemory = GlobalAlloc(GHND, Len(MyString) + 1)
+
+'Lock the block to get a far pointer to this memory.
+  lpGlobalMemory = GlobalLock(hGlobalMemory)
+
+'Copy the string to this global memory.
+  lpGlobalMemory = lstrcpy(lpGlobalMemory, MyString)
+
+'Unlock the memory.
+  If GlobalUnlock(hGlobalMemory) <> 0 Then
+    MsgBox "Could not unlock memory location. Copy aborted."
+    GoTo OutOfHere2
+  End If
+
+'Open the Clipboard to copy data to.
+  If OpenClipboard(0&) = 0 Then
+    MsgBox "Could not open the Clipboard. Copy aborted."
+    Exit Function
+  End If
+
+'Clear the Clipboard.
+  x = EmptyClipboard()
+
+'Copy the data to the Clipboard.
+  hClipMemory = SetClipboardData(CF_TEXT, hGlobalMemory)
+
+OutOfHere2:
+  If CloseClipboard() = 0 Then
+    MsgBox "Could not close Clipboard."
+  End If
+
+End Function
+
+Sub CopyTextToClipboard()
+'PURPOSE: Copy a given text to the clipboard (using Windows API)
+'SOURCE: www.TheSpreadsheetGuru.com
+'NOTES: Must have above API declaration and ClipBoard_SetData function in your code
+
+Dim txt As String
+
+'Put some text inside a string variable
+  txt = "This was copied to the clipboard using VBA!" & Now()
+
+'Place text into the Clipboard
+   Win32_SetClipBoard txt
+
+'Notify User
+  MsgBox "There is now text copied to your clipboard!", vbInformation
+
+End Sub
+Public Function Win32_SetClipBoard(MyString As String) As Boolean
+'32-bit code by Microsoft: http://msdn.microsoft.com/en-us/library/office/ff192913.aspx
+    Dim hGlobalMemory As LongPtr, lpGlobalMemory As LongPtr
+    Dim hClipMemory As LongPtr, x As Long
+
+    ' Allocate moveable global memory.
+    hGlobalMemory = GlobalAlloc(GHND, Len(MyString) * 2 + 2)
+    If hGlobalMemory = 0 Then MsgBox "Could not allocate memory.": Exit Function
+
+    ' Lock the block to get a far pointer to this memory.
+    lpGlobalMemory = GlobalLock(hGlobalMemory)
+
+    ' Copy the string to this global memory.
+    CopyMemory lpGlobalMemory, StrPtr(MyString), Len(MyString) * 2
+
+    ' Unlock the memory.
+    If GlobalUnlock(hGlobalMemory) <> 0 Then
+       MsgBox "Could not unlock memory location. Copy aborted."
+       'Debug.Print "GlobalFree returned: " & CStr(GlobalFree(hGlobalMemory))
+       GoTo OutOfHere
+    End If
+
+    ' Open the Clipboard to copy data to.
+    If OpenClipboard(0&) = 0 Then
+       MsgBox "Could not open the Clipboard. Copy aborted."
+       Exit Function
+    End If
+
+    ' Clear the Clipboard.
+    EmptyClipboard
+
+    ' Copy the data to the Clipboard.
+    SetClipboardData CF_UNICODETEXT, hGlobalMemory
+
+OutOfHere:
+    If CloseClipboard() = 0 Then
+       MsgBox "Could not close Clipboard."
+    End If
+    Win32_SetClipBoard = True
+End Function
+
+Public Sub SetClipboardX(sUniText As String)
+    Dim iStrPtr As Long
+    Dim iLen As Long
+    Dim iLock As Long
+    Const GMEM_MOVEABLE As Long = &H2
+    Const GMEM_ZEROINIT As Long = &H40
+    Const CF_UNICODETEXT As Long = &HD
+    OpenClipboard 0&
+    EmptyClipboard
+    iLen = LenB(sUniText) + 2&
+    iStrPtr = GlobalAlloc(GMEM_MOVEABLE Or GMEM_ZEROINIT, iLen)
+    iLock = GlobalLock(iStrPtr)
+    lstrcpy iLock, StrPtr(sUniText)
+    GlobalUnlock iStrPtr
+    SetClipboardData CF_UNICODETEXT, iStrPtr
+    CloseClipboard
+End Sub
+Function ClipBoard_GetTextW() As String
+  Dim hClipMemory As Long
+  Dim lpClipMemory As Long
+  Dim abytCBText() As Byte
+  Dim RetVal As Long
+  Dim lngSize As Long
+  If OpenClipboard(0&) <> 0 Then
+    hClipMemory = GetClipboardData(CF_UNICODETEXT)
+    If hClipMemory <> 0 Then
+      lpClipMemory = GlobalLock(hClipMemory)
+      If lpClipMemory <> 0 Then
+        lngSize = GlobalSize(lpClipMemory)
+        ReDim abytCBText(lngSize - 1)
+        Call CopyMemory(abytCBText(0), ByVal lpClipMemory, lngSize)
+        GlobalUnlock hClipMemory
+        ClipBoard_GetTextW = StrConv(abytCBText(0), vbUnicode)
+      Else
+        MsgBox "Could not lock memory to copy string from."
+      End If
+    End If
+    Call CloseClipboard
+  End If
+  ClipBoard_GetTextW = abytCBText
+End Function
+Public Function GetClipboardX() As String
+    Dim iStrPtr As Long
+    Dim iLen As Long
+    Dim iLock As Long
+    Dim sUniText As String
+    Const CF_UNICODETEXT As Long = 13&
+    OpenClipboard 0&
+    If IsClipboardFormatAvailable(CF_UNICODETEXT) Then
+        iStrPtr = GetClipboardData(CF_UNICODETEXT)
+        If iStrPtr Then
+            iLock = GlobalLock(iStrPtr)
+            iLen = GlobalSize(iStrPtr)
+            sUniText = String$(iLen \ 2& - 1&, vbNullChar)
+            lstrcpy StrPtr(sUniText), iLock
+            GlobalUnlock iStrPtr
+        End If
+        GetClipboardX = sUniText
+    End If
+    CloseClipboard
+End Function
+Function ClipBoard_GetDataY()
+   Dim hClipMemory As Long
+   Dim lpClipMemory As Long
+   Dim MyString As String
+   Dim RetVal As Long
+ 
+   If OpenClipboard(0&) = 0 Then
+      MsgBox "Cannot open Clipboard. Another app. may have it open"
+      Exit Function
+   End If
+          
+   ' Obtain the handle to the global memory
+   ' block that is referencing the text.
+   hClipMemory = GetClipboardData(CF_UNICODETEXT)
+   If IsNull(hClipMemory) Then
+      MsgBox "Could not allocate memory"
+      GoTo OutOfHere
+   End If
+ 
+   ' Lock Clipboard memory so we can reference
+   ' the actual data string.
+   lpClipMemory = GlobalLock(hClipMemory)
+ 
+   If Not IsNull(lpClipMemory) Then
+      MyString = Space$(4096)
+      RetVal = lstrcpy(MyString, lpClipMemory)
+      RetVal = GlobalUnlock(hClipMemory)
+       
+      ' Peel off the null terminating character.
+      MyString = Mid(MyString, 1, InStr(1, MyString, Chr$(0), 0) - 1)
+   Else
+      MsgBox "Could not lock memory to copy string from."
+   End If
+ 
+OutOfHere:
+ 
+   RetVal = CloseClipboard()
+   ClipBoard_GetDataY = MyString
+ 
+End Function
